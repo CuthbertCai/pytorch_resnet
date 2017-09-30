@@ -7,6 +7,7 @@ from torch.autograd import Variable
 import time
 import torch.nn.init as init
 
+#preprocess the images
 train_transform = transforms.Compose([
     transforms.Pad(4),
     transforms.RandomHorizontalFlip(),
@@ -20,6 +21,7 @@ test_transform = transforms.Compose([
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 ])
 
+#make dataloader for training and testing
 train_data = datasets.CIFAR10(root='./data', train= True, transform= train_transform, download= True)
 test_data = datasets.CIFAR10(root='./data', train= False, transform= test_transform, download= True)
 train_data_size = len(train_data)
@@ -46,6 +48,7 @@ class ResBlock(nn.Module):
 
     def forward(self, input):
         identity = input
+        #if the channels and image size would not change after the block
         if self.in_channel == self.out_channel:
             output = self.conv1(input)
             output = self.bn(output)
@@ -55,6 +58,7 @@ class ResBlock(nn.Module):
             output = torch.add(output, identity)
             output = self.relu(output)
         else:
+            #if the channels and image size would change after the block
             identity = self.max_pool(identity)
             identity = torch.cat((identity, Variable(torch.zeros(identity.size()))), 1)
             output = self.conv1_(input)
@@ -90,6 +94,8 @@ class ResNet(nn.Module):
         self.init_params()
 
     def init_params(self):
+        """Initialize the parameters in the ResNet model"""
+
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 init.kaiming_normal(m.weight, mode='fan_out')
@@ -124,6 +130,14 @@ class ResNet(nn.Module):
         return output
 
 def lr_optimizer(optimizer, step):
+    """The schedule of changing the learning rate
+
+       When the step is 32000 or 48000, the learning rate would be divided by 10
+
+    :param: optimizer: the optimizer to update the parameters
+    :param: step: the training iterations
+    """
+
     if step == 32000:
         for param_group in optimizer.param_groups:
             param_group['lr'] = param_group['lr'] / 10
@@ -135,6 +149,8 @@ def lr_optimizer(optimizer, step):
     return optimizer
 
 def train(res_net, lr_optimizer, optimizer, criterion, train_loader, max_epoch = 160):
+    """Train the ResNet model"""
+
     step = 0
     start_time = time.time()
     for epoch in range(max_epoch):
@@ -171,6 +187,8 @@ if use_gpu:
     res_net = res_net.cuda()
 criterion = torch.nn.CrossEntropyLoss()
 # optimizer = optim.SGD(res_net.parameters(), lr = 0.1, momentum= 0.9, weight_decay= 0.0001)
+
+#the parameters of PRelu could not have weight decay
 optimizer = optim.SGD([
     {'params': res_net.bn1.parameters(), 'weight_decay': 0.0001},
     {'params': res_net.conv1.parameters(), 'weight_decay': 0.0001},
@@ -187,6 +205,7 @@ optimizer = optim.SGD([
 ], lr= 0.1, momentum= 0.9)
 res_net = train(res_net, lr_optimizer, optimizer, criterion, train_loader)
 
+#calculate the accuracy of the trained model
 corrects = 0
 for data in test_loader:
     test_input, test_label = data
