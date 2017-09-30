@@ -10,8 +10,11 @@ rely on the pretrain model and can be trained from scratch.
 
 ### Train and Test ###
 > This model would be trained for 160 epoches, and would be tested after training time. If you  
-> want to save the model, you could add `torch.save(res_net.state_dict(), PATH)` after training.  
+> want to save the model, you could add `torch.save(res_net.state_dict(), PATH)` after training.
+
 #### Run the model ####
-> `python model.py` 
+> `python model.py`  
+> This model could only achieve 86% accuracy which is lower than the accuracy mentioned in paper.  
+> The hyper parameters need to be adjusted.
   
 [1]:https://arxiv.org/pdf/1512.03385.pdf
